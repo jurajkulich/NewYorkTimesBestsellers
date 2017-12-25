@@ -3,7 +3,12 @@ package com.example.android.newyorktimesbestsellers;
 import android.os.AsyncTask;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
+import android.view.View;
+import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -16,8 +21,11 @@ import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity {
 
+    private Button mButton;
     private TextView mTextView;
     private ArrayList<Book> mBooks;
+    private RecyclerView mRecyclerView;
+    private BooksAdapter mBooksAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -27,6 +35,19 @@ public class MainActivity extends AppCompatActivity {
         mTextView = (TextView) findViewById(R.id.textview);
         mBooks = new ArrayList<>();
 
+        mRecyclerView = (RecyclerView) findViewById(R.id.recycler_view_books);
+        mBooksAdapter = new BooksAdapter(this, mBooks);
+
+        mRecyclerView.setAdapter(mBooksAdapter);
+        mRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+
+        mButton = (Button) findViewById(R.id.button);
+        mButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                mBooksAdapter.updateAdapter(mBooks);
+            }
+        });
         RetrieveBook retrieveBook = new RetrieveBook();
         retrieveBook.execute();
 
@@ -68,12 +89,34 @@ public class MainActivity extends AppCompatActivity {
                 JSONArray jsonArray = new JSONObject(stringBuilder.toString()).getJSONArray("results");
                 for( int i = 0; i < jsonArray.length(); i++) {
                     JSONObject jsonObject = jsonArray.getJSONObject(i);
-                    mBooks.add(new Book(jsonObject.getString("title"), jsonObject.getString("author"), jsonObject.getString("description"), jsonObject.getInt("rank"),
-                            jsonObject.getInt("rank_last_week"), jsonObject.getInt("weeks_on_list"), jsonObject.getString("amazon_product_url")));
+                    String title = "";
+                    String author = "";
+                    String description = "";
+                    int rank = jsonObject.getInt("rank");
+                    int rank_last_week = jsonObject.getInt("rank_last_week");
+                    int weeks_on_list = jsonObject.getInt("weeks_on_list");
+                    String amazon_product_url = jsonObject.getString("amazon_product_url");
+                    
+                    JSONArray details = jsonObject.getJSONArray("book_details");
+
+                    for( int j = 0; j < details.length(); j++) {
+                        JSONObject detail = details.getJSONObject(j);
+                        title = detail.getString("title");
+                        author = detail.getString("author");
+                        description = detail.getString("description");
+                    }
+
+                    mBooks.add(new Book(title, author, description, rank, rank_last_week, weeks_on_list, amazon_product_url));
+                    // mBooks.add(new Book(jsonObject.getString("title"), jsonObject.getString("author"), jsonObject.getString("description"), jsonObject.getInt("rank"),
+                    //        jsonObject.getInt("rank_last_week"), jsonObject.getInt("weeks_on_list"), jsonObject.getString("amazon_product_url")));
+                    // mTextView.setText(mBooks.get(i).description);
+
                 }
             } catch(Exception e) {
+                Toast.makeText(MainActivity.this, e.toString(), Toast.LENGTH_LONG).show();
                 e.printStackTrace();
             }
+            mBooksAdapter.updateAdapter(mBooks);
         }
     }
 
